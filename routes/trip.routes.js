@@ -37,11 +37,17 @@ router.get('/', (req, res, next) => {
 
 //  GET /api/trips/:tripId -  Retrieves a specific trip by id
 
-router.get('/:tripId', (req, res, next) =>{
+router.get('/:tripId', async (req, res, next) =>{
     const {tripId} = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(tripId)) {
         res.status(400).json({message: "Specified id is not valid"});
+        return;
+    }
+
+    const trip = await Trip.findById(tripId)
+    if(!trip) {
+        res.status(400).json({message: `Trip id ${tripId} does not exist`});
         return;
     }
 
@@ -54,7 +60,7 @@ router.get('/:tripId', (req, res, next) =>{
 
 // PUT  /api/trips/:tripId  -  Updates a specific trip by id
 
-router.put ('/:tripId', fileUploader.single('imageURL'), (req, res, next) =>{
+router.put ('/:tripId', fileUploader.single('imageURL'), async (req, res, next) =>{
     const {tripId} = req.params;
     // const {title, description, country, startDate, endDate, status, publicOrPrivate } = req.body;
 
@@ -63,11 +69,17 @@ router.put ('/:tripId', fileUploader.single('imageURL'), (req, res, next) =>{
         return;
     }
 
+    const trip = await Trip.findById(tripId)
+    if(!trip) {
+        res.status(400).json({message: `Trip id ${tripId} does not exist`});
+        return;
+    }
+
     let imageUrl;
 
     if(req.file) {
       imageUrl = req.file.path;
-    } 
+    }
 
     Trip.findByIdAndUpdate(tripId, {...req.body, imageURL: imageUrl }, {new: true})
     .then((trip) => res.json(trip))
@@ -76,7 +88,7 @@ router.put ('/:tripId', fileUploader.single('imageURL'), (req, res, next) =>{
 
 // DELETE  /api/trips/:tripId  -  Deletes a specific trip by id
 
-router.delete('/:tripId', (req, res, next) =>{
+router.delete('/:tripId', async (req, res, next) =>{
     const {tripId} = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(tripId)) {
@@ -84,9 +96,23 @@ router.delete('/:tripId', (req, res, next) =>{
         return;     
     }
 
+    const trip = await Trip.findById(tripId)
+    if(!trip) {
+        res.status(400).json({message: `Trip id ${tripId} does not exist`});
+        return;
+    }
+
     Trip.findByIdAndDelete(tripId)
+    .then((deletedTrip) => {
+        deletedTrip.reviews.forEach ((reviewId) => {
+            Review.findByIdAndRemove(reviewId)
+            //.then(() => res.json({ message: `Review with id ${reviewId} was deleted` }))
+            .catch((err) => res.json(err));
+        })
+    })
     .then(()=> res.json({message:`Trip with id ${tripId} was deleted`}))
     .catch(err => res.json(err))
+
 })
 
 module.exports = router

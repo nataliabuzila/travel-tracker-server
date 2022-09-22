@@ -1,13 +1,15 @@
 const router = require ("express").Router()
 const Trip = require ("../models/Trip.model")
 const Review = require ("../models/Review.model")
+const User = require("../models/User.model");
 
 //require cloudinary
 
 const fileUploader = require('../config/cloudinary.config');
 const { default: mongoose } = require("mongoose");
 
-//  POST /api/trips  -  Creates a new trip
+
+/////  POST /api/trips  -  Creates a new trip
 
 router.post('/', fileUploader.single('imageURL'), (req, res, next) => {
 
@@ -18,24 +20,26 @@ router.post('/', fileUploader.single('imageURL'), (req, res, next) => {
         return;
     }
 
-    const {title, description, country, city, startDate, endDate, status, publicOrPrivate} = req.body;
+    const {title, description, country, city, startDate, endDate, status, publicOrPrivate, owner} = req.body;
 
-    Trip.create({title, description, country, city, startDate, endDate, status, publicOrPrivate, imageURL: req.file.path, reviews: [] })
+    Trip.create({title, description, country, city, startDate, endDate, status, publicOrPrivate, imageURL: req.file.path, owner, reviews: [] })
+    .then((newTrip) => {
+        return User.findByIdAndUpdate(owner, { $push: { trips: newTrip._id } }, { new: true })
+    })
     .then((value) => res.status(201).json(value))
     .catch((err) => res.json(err))
 })
 
-// GET /api/trips -  Retrieves all of the trips
+///// GET /api/trips -  Retrieves all of the trips
 
 router.get('/', (req, res, next) => {
     Trip.find()
     .populate('reviews')
-    // .populate('owner')
     .then(allTrips => res.json(allTrips))
     .catch(err=> res.json(err))
 })
 
-//  GET /api/trips/:tripId -  Retrieves a specific trip by id
+/////  GET /api/trips/:tripId -  Retrieves a specific trip by id
 
 router.get('/:tripId', async (req, res, next) =>{
     const {tripId} = req.params;
@@ -53,7 +57,6 @@ router.get('/:tripId', async (req, res, next) =>{
 
     Trip.findById(tripId)
     .populate('reviews')
-    // .populate('owner')
     .then(trip => res.status(201).json(trip))
     .catch(err => res.json(err))
 })
@@ -88,8 +91,8 @@ router.put ('/:tripId', fileUploader.single('imageURL'), async (req, res, next) 
 
 // DELETE  /api/trips/:tripId  -  Deletes a specific trip by id
 
-router.delete('/:tripId', async (req, res, next) =>{
-    const {tripId} = req.params;
+router.delete('/:ownerId/:tripId', async (req, res, next) =>{
+    const {ownerId, tripId} = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(tripId)) {
         res.status(400).json({message: 'Specified id is not valid'});
@@ -105,7 +108,7 @@ router.delete('/:tripId', async (req, res, next) =>{
     Trip.findByIdAndDelete(tripId)
     .then((deletedTrip) => {
         deletedTrip.reviews.forEach ((reviewId) => {
-            Review.findByIdAndRemove(reviewId)
+            Review.findByIdAndDelete(reviewId)
             //.then(() => res.json({ message: `Review with id ${reviewId} was deleted` }))
             .catch((err) => res.json(err));
         })
@@ -113,6 +116,9 @@ router.delete('/:tripId', async (req, res, next) =>{
     .then(()=> res.json({message:`Trip with id ${tripId} was deleted`}))
     .catch(err => res.json(err))
 
+    const owner = await User.findOne({_id: ownerId})
+    owner.trips.pull({_id: tripId })
+    await owner.save();
 })
 
 module.exports = router

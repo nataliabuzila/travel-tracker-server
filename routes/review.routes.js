@@ -1,15 +1,14 @@
 const router = require("express").Router();
 const Trip = require("../models/Trip.model");
 const Review = require("../models/Review.model");
-
-//require cloudinary
-
+const User = require("../models/User.model");
 const fileUploader = require("../config/cloudinary.config");
 const { default: mongoose } = require("mongoose");
 
-//  POST /api/reviews  -  Creates a new review
 
-router.post("/", fileUploader.single("imageURL"), (req, res, next) => {
+//////  POST /api/reviews  -  Creates a new review
+
+router.post("/", fileUploader.single("imageURL"), async (req, res, next) => {
   // console.log("file is: ", req.file)
 
   if (!req.file) {
@@ -17,36 +16,46 @@ router.post("/", fileUploader.single("imageURL"), (req, res, next) => {
     return;
   }
 
-  const { title, description, date, publicOrPrivate, trip } = req.body;
+  const { title, description, date, publicOrPrivate, trip, owner } = req.body;
   // console.log(req.body);
 
-  Review.create({
+  const review = await Review.create({
     title,
     description,
     date,
     publicOrPrivate,
     imageURL: req.file.path,
     trip,
+    owner
   })
-    .then((newReview) => {
-      // console.log(newReview);
-      return Trip.findByIdAndUpdate(
-        trip,
-        { $push: { reviews: newReview._id } },
-        { new: true }
-      );
-      // return Trip.findByIdAndUpdate(tripId, { $set: {review: newReview._id}}, {new: true})
-    })
-    .then((value) => res.status(201).json(value))
-    .catch((err) => res.json(err));
+    // .then((newReview) => {
+    //   // console.log(newReview);
+    //   User.findByIdAndUpdate(owner, { $push: {reviews: newReview._id} }, {new: true})
+    //   return Trip.findByIdAndUpdate(
+    //     trip,
+    //     { $push: { reviews: newReview._id } },
+    //     { new: true }
+    //   );
+    //   // return Trip.findByIdAndUpdate(tripId, { $set: {review: newReview._id}}, {new: true})
+    // })
+    const ownerReview = await User.findById(owner)
+    ownerReview.reviews.push(review)
+    const tripReview = await Trip.findById(trip)
+    tripReview.reviews.push(review)
+    await ownerReview.save();
+    await tripReview.save();
+    res.status(201).json(review)
+
+    // .then((value) => res.status(201).json(value))
+    // .catch((err) => res.json(err));
 });
 
-// GET /api/reviews -  Retrieves all of the reviews
+////// GET /api/reviews -  Retrieves all of the reviews
 
 router.get("/", (req, res, next) => {
   Review.find()
-    // .populate('owner')
     .populate("trip")
+    //.populate ("owner")
     .then((allReviews) => res.json(allReviews)) //why here we don;t use .status(201)
     .catch((err) => res.json(err));
 });
@@ -121,7 +130,7 @@ router.delete("/:tripId/:reviewId", async (req, res, next) => {
       return;
   }
 
-  Review.findByIdAndRemove(reviewId)
+  Review.findByIdAndDelete(reviewId)
     .then(() => res.json({ message: `Review with id ${reviewId} was deleted` }))
     .catch((err) => res.json(err));
 

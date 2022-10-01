@@ -14,10 +14,10 @@ const saltRounds = 10;
 
 router.post("/signup", fileUploader.single('avatarURL'), async (req, res, next) =>{
 
-    if (!req.file) {
-        next(new Error("No file uploaded!"));
-        return;
-    }
+    // if (!req.file) {
+    //     next(new Error("No file uploaded!"));
+    //     return;
+    // }
 
     const {name, email, password, registrationDate, about} = req.body;
 
@@ -50,9 +50,9 @@ router.post("/signup", fileUploader.single('avatarURL'), async (req, res, next) 
 
     try {
         // create a new user in the database
-        user = await User.create({name, email, password: hashedPassword, registrationDate, about, avatarURL: req.file.path, trips: [], reviews: []})
+        user = await User.create({name, email, password: hashedPassword, registrationDate, about, avatarURL: req?.file?.path, trips: [], reviews: []})
         // deconstruct the user object to omit the password & send the JSON response that includes the newly created user object, without the password
-        res.status(201).json({ name, email, registrationDate, about, avatarURL: req.file.path, _id: user._id, trips: [], reviews: []})
+        res.status(201).json({ name, email, registrationDate, about, avatarURL: req?.file?.path, _id: user._id, trips: [], reviews: []})
      }
     catch (err) {
          console.log(err);

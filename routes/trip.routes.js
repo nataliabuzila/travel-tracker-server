@@ -15,14 +15,14 @@ router.post('/', fileUploader.single('imageURL'), (req, res, next) => {
 
     // console.log("file is: ", req.file)
 
-    if (!req.file) {
-        next(new Error("No file uploaded!"));
-        return;
-    }
+    // if (!req.file) {
+    //     next(new Error("No file uploaded!"));
+    //     return;
+    // }
 
     const {title, description, country, city, startDate, endDate, status, publicOrPrivate, owner} = req.body;
 
-    Trip.create({title, description, country, city, startDate, endDate, status, publicOrPrivate, imageURL: req.file.path, owner, reviews: [] })
+    Trip.create({title, description, country, city, startDate, endDate, status, publicOrPrivate, imageURL: req?.file?.path, owner, reviews: [] })
     .then((newTrip) => {
         return User.findByIdAndUpdate(owner, { $push: { trips: newTrip._id } }, { new: true })
     })
@@ -35,6 +35,7 @@ router.post('/', fileUploader.single('imageURL'), (req, res, next) => {
 router.get('/', (req, res, next) => {
     Trip.find()
     .populate('reviews')
+    .populate('owner')
     .then(allTrips => res.json(allTrips))
     .catch(err=> res.json(err))
 })
@@ -57,11 +58,12 @@ router.get('/:tripId', async (req, res, next) =>{
 
     Trip.findById(tripId)
     .populate('reviews')
+    .populate('owner')
     .then(trip => res.status(201).json(trip))
     .catch(err => res.json(err))
 })
 
-// PUT  /api/trips/:tripId  -  Updates a specific trip by id
+////// PUT  /api/trips/:tripId  -  Updates a specific trip by id
 
 router.put ('/:tripId', fileUploader.single('imageURL'), async (req, res, next) =>{
     const {tripId} = req.params;
@@ -84,12 +86,14 @@ router.put ('/:tripId', fileUploader.single('imageURL'), async (req, res, next) 
       imageUrl = req.file.path;
     }
 
+    console.log(req.body);
+
     Trip.findByIdAndUpdate(tripId, {...req.body, imageURL: imageUrl }, {new: true})
     .then((trip) => res.json(trip))
     .catch(err => res.json(err))
 })
 
-// DELETE  /api/trips/:tripId  -  Deletes a specific trip by id
+///// DELETE  /api/trips/:tripId  -  Deletes a specific trip by id
 
 router.delete('/:ownerId/:tripId', async (req, res, next) =>{
     const {ownerId, tripId} = req.params;
@@ -105,11 +109,12 @@ router.delete('/:ownerId/:tripId', async (req, res, next) =>{
         return;
     }
 
+    //const deletedTrip = Trip.findByIdAndDelete(tripId)
+    // if(deletedTrip.reviews.length>0) {deletedTrip.reviews.forEach ((reviewId) => {Review.findByIdAndDelete(reviewId)})}
     Trip.findByIdAndDelete(tripId)
     .then((deletedTrip) => {
         deletedTrip.reviews.forEach ((reviewId) => {
             Review.findByIdAndDelete(reviewId)
-            //.then(() => res.json({ message: `Review with id ${reviewId} was deleted` }))
             .catch((err) => res.json(err));
         })
     })

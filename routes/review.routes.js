@@ -11,10 +11,10 @@ const { default: mongoose } = require("mongoose");
 router.post("/", fileUploader.single("imageURL"), async (req, res, next) => {
   // console.log("file is: ", req.file)
 
-  if (!req.file) {
-    next(new Error("No file uploaded!"));
-    return;
-  }
+  // if (!req.file) {
+  //   next(new Error("No file uploaded!"));
+  //   return;
+  // }
 
   const { title, description, date, publicOrPrivate, trip, owner } = req.body;
   // console.log(req.body);
@@ -24,7 +24,7 @@ router.post("/", fileUploader.single("imageURL"), async (req, res, next) => {
     description,
     date,
     publicOrPrivate,
-    imageURL: req.file.path,
+    imageURL: req?.file?.path,
     trip,
     owner
   })
@@ -44,7 +44,10 @@ router.post("/", fileUploader.single("imageURL"), async (req, res, next) => {
     tripReview.reviews.push(review)
     await ownerReview.save();
     await tripReview.save();
+   //console.log(review.createdAt)
     res.status(201).json(review)
+
+
 
     // .then((value) => res.status(201).json(value))
     // .catch((err) => res.json(err));
@@ -60,7 +63,7 @@ router.get("/", (req, res, next) => {
     .catch((err) => res.json(err));
 });
 
-//  GET /api/reviews/:reviewId -  Retrieves a specific review by id
+/////  GET /api/reviews/:reviewId -  Retrieves a specific review by id
 
 router.get("/:reviewId", async (req, res, next) => {
   const { reviewId } = req.params;
@@ -83,7 +86,7 @@ router.get("/:reviewId", async (req, res, next) => {
     .catch((err) => res.json(err));
 });
 
-// PUT  /api/reviews/:reviewId  -  Updates a specific review by id
+///// PUT  /api/reviews/:reviewId  -  Updates a specific review by id
 
 router.put("/:reviewId", fileUploader.single("imageURL"), async (req, res, next) => {
   const { reviewId } = req.params;

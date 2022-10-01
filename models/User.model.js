@@ -12,8 +12,8 @@ const userSchema = new Schema(
     },
     registrationDate: { type: Date, default: Date.now },    // `Date.now()` returns the current unix timestamp as a number
     about: String,
-    // trips: [{type: Schema.Types.ObjectId, ref: 'Trip'}],
-    // reviews: [{type: Schema.Types.ObjectId, ref: 'Review'}],
+    trips: [{type: Schema.Types.ObjectId, ref: 'Trip'}],
+    reviews: [{type: Schema.Types.ObjectId, ref: 'Review'}],
   },
   {
     // this second object adds extra properties: `createdAt` and `updatedAt`

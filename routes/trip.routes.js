@@ -109,11 +109,13 @@ router.delete('/:ownerId/:tripId', async (req, res, next) =>{
         return;
     }
 
+    const owner = await User.findOne({_id: ownerId})
     //const deletedTrip = Trip.findByIdAndDelete(tripId)
     // if(deletedTrip.reviews.length>0) {deletedTrip.reviews.forEach ((reviewId) => {Review.findByIdAndDelete(reviewId)})}
     Trip.findByIdAndDelete(tripId)
     .then((deletedTrip) => {
         deletedTrip.reviews.forEach ((reviewId) => {
+            owner.reviews.pull({_id: reviewId })
             Review.findByIdAndDelete(reviewId)
             .catch((err) => res.json(err));
         })
@@ -121,7 +123,6 @@ router.delete('/:ownerId/:tripId', async (req, res, next) =>{
     .then(()=> res.json({message:`Trip with id ${tripId} was deleted`}))
     .catch(err => res.json(err))
 
-    const owner = await User.findOne({_id: ownerId})
     owner.trips.pull({_id: tripId })
     await owner.save();
 })

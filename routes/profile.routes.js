@@ -22,7 +22,6 @@ router.get ('/:userId', async (req, res, next) =>{
 
     User.findById(userId)
     .populate('trips')
-    .populate('reviews')
     .then((user) => res.json(user))
     .catch(err => res.json(err))
 })
